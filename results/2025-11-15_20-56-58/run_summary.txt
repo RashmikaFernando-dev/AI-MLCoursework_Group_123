@@ -1,0 +1,7 @@
+=== ENHANCED BIOMETRIC AUTHENTICATION RESULTS ===
+DataDir      : C:\Users\MSI\Documents\AI-ML-FINAL\AI-ML-COURSE\data\raw
+Split        : session  | TrainN=2280  TestN=2280
+Model        : hidden=[32 16]  trainFcn=trainscg  epochs=200
+PCA          : use=1  keep=0.95  k=13
+Results      : TrainAcc=0.9982  TestAcc=0.9654  EER=0.0140
+Timestamp    : 15-Nov-2025 20:58:20

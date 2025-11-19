@@ -1,0 +1,4 @@
+Saved training plots
+Saved confusion matrix
+ROC save failed: Unrecognized property Alpha for class Line.
+Saved summary CSV -> C:\Users\MSI\Documents\MATLAB\AI-ML-COURSE\results\2025-11-19_09-30-35\tables\main_HS3216_FCNtrainscg_E200_summary.csv
