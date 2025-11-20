@@ -139,7 +139,7 @@ try
     %% 8) PCA preview
     if size(XF,1) > size(XF,2) && size(XF,2) > 2
         figure('Position',[500,500,800,600]);
-        [coeff_preview,score_preview,,,explained_preview] = pca(XF);
+        [coeff_preview,score_preview,~,~,explained_preview] = pca(XF);
         
         subplot(2,2,1);
         plot(1:min(20,length(explained_preview)), explained_preview(1:min(20,end)), 'bo-');
