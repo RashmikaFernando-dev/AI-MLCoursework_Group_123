@@ -6,58 +6,20 @@ try
     fprintf('  - Feature matrix: %d samples x %d features\n', size(XF,1), size(XF,2));
     fprintf('  - Users: %d unique\n', length(unique(yUser)));
     
-    %% Calculate F-statistics first (needed for summary)
-    f_stats = zeros(1,size(XF,2));
-    users = unique(yUser);
-    k = length(users);
-    [~,~,user_idx] = unique(yUser);
-
-    for j = 1:size(XF,2)
-        feature = XF(:, j);
-        overall_mean = mean(feature);
-
-        group_means = zeros(k,1);
-        group_sizes = zeros(k,1);
-
-        for u = 1:k
-            group_vals = feature(user_idx == users(u));
-            group_means(u) = mean(group_vals);
-            group_sizes(u) = length(group_vals);
-        end
-
-        SS_between = sum(group_sizes .* (group_means - overall_mean).^2);
-
-        SS_within = 0;
-        for u = 1:k
-            group_vals = feature(user_idx == users(u));
-            SS_within = SS_within + sum((group_vals - group_means(u)).^2);
-        end
-
-        df_between = k - 1;
-        df_within  = length(feature) - k;
-
-        f_stats(j) = (SS_between/df_between) / (SS_within/df_within);
-    end
-
-    %% 1) Feature Discriminative Analysis Summary
+    %% 1) Feature summary statistics plot
     figure('Position',[100,100,1200,800], 'Color', 'w');
-    
-    %% Main F-statistics plots (replacing old statistical plots)
     subplot(2,2,1);
-    plot(1:length(f_stats), f_stats, 'b-', 'LineWidth',2);
-    xlabel('Feature Index'); ylabel('F-statistic');
-    title('Feature Discriminative Power (F-stats)');
+    mu = mean(XF,1); sigma = std(XF,1);
+    plot(1:length(mu), mu, 'b-', 'LineWidth',1.5); hold on;
+    plot(1:length(sigma), sigma, 'r-', 'LineWidth',1.5);
+    xlabel('Feature Index', 'Color', 'k'); ylabel('Value', 'Color', 'k');
+    title('Feature Statistics Overview', 'Color', 'k');
+    legend('Mean','Std Dev','Location','best', 'TextColor', 'k');
     grid on;
+    set(gca, 'Color', 'w', 'XColor', 'k', 'YColor', 'k');
     
+    %% 2) Feature correlation heatmap
     subplot(2,2,2);
-    [sorted_f, sort_idx_f] = sort(f_stats, 'descend');
-    semilogy(1:length(sorted_f), sorted_f, 'r-', 'LineWidth',2);
-    xlabel('Feature Rank'); ylabel('F-statistic (log scale)');
-    title('Ranked Feature F-statistics');
-    grid on;
-    
-    %% 3) Feature correlation heatmap
-    subplot(2,2,3);
     if size(XF,2) <= 50
         C = corrcoef(XF);
         imagesc(C); colorbar; colormap('jet');
@@ -71,12 +33,22 @@ try
         xlabel('Feature Index'); ylabel('Feature Index');
     end
     
-    %% 4) Class distribution visualization
-    subplot(2,2,4);
+    %% 3) Class distribution visualization
+    subplot(2,2,3);
+    [users,~,user_idx] = unique(yUser);
     hist_data = histcounts(user_idx, 1:length(users)+1);
     bar(hist_data);
     xlabel('User ID'); ylabel('Sample Count');
     title('Samples per User');
+    grid on;
+    
+    %% 4) Feature variance ranking
+    subplot(2,2,4);
+    feature_var = var(XF,1);
+    [sorted_var, sort_idx] = sort(feature_var, 'descend');
+    semilogy(1:length(sorted_var), sorted_var, 'g-', 'LineWidth',1.5);
+    xlabel('Feature Rank'); ylabel('Variance (log scale)');
+    title('Feature Importance by Variance');
     grid on;
     
     save_fig(gcf, fullfile(RUN.figDir, 'feature_summary_stats.png'));
@@ -114,10 +86,39 @@ try
     save_fig(gcf, fullfile(RUN.figDir, 'feature_class_distribution.png'));
     close(gcf);
     
-    %% 7) Additional F-statistics analysis (separate detailed view)
-    % F-stats already calculated above and included in main summary
-    % This creates a separate detailed F-statistics figure
+    %% 7) FIXED — TRUE F-STATISTICS (correct ANOVA formula)
     figure('Position',[400,400,1000,500]);
+
+    f_stats = zeros(1,size(XF,2));
+    users = unique(user_idx);
+    k = length(users);
+
+    for j = 1:size(XF,2)
+        feature = XF(:, j);
+        overall_mean = mean(feature);
+
+        group_means = zeros(k,1);
+        group_sizes = zeros(k,1);
+
+        for u = 1:k
+            group_vals = feature(user_idx == users(u));
+            group_means(u) = mean(group_vals);
+            group_sizes(u) = length(group_vals);
+        end
+
+        SS_between = sum(group_sizes .* (group_means - overall_mean).^2);
+
+        SS_within = 0;
+        for u = 1:k
+            group_vals = feature(user_idx == users(u));
+            SS_within = SS_within + sum((group_vals - group_means(u)).^2);
+        end
+
+        df_between = k - 1;
+        df_within  = length(feature) - k;
+
+        f_stats(j) = (SS_between/df_between) / (SS_within/df_within);
+    end
 
     subplot(1,2,1);
     plot(1:length(f_stats), f_stats, 'b-', 'LineWidth',1.5);
@@ -132,13 +133,13 @@ try
     title('Ranked Feature F-statistics');
     grid on;
 
-    save_fig(gcf, fullfile(RUN.figDir, 'feature_fstats_detailed.png'));
+    save_fig(gcf, fullfile(RUN.figDir, 'feature_fstats.png'));
     close(gcf);
 
     %% 8) PCA preview
     if size(XF,1) > size(XF,2) && size(XF,2) > 2
         figure('Position',[500,500,800,600]);
-        [coeff_preview,score_preview,~,~,explained_preview] = pca(XF);
+        [coeff_preview,score_preview,,,explained_preview] = pca(XF);
         
         subplot(2,2,1);
         plot(1:min(20,length(explained_preview)), explained_preview(1:min(20,end)), 'bo-');
